@@ -14,34 +14,35 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  email     String   @unique
+  id        Int           @id @default(autoincrement())
+  username  String        @unique
+  email     String        @unique
   password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  wallets   Wallet[]
-
-  Transaction Transaction[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  wallets   Wallet[]      
+  transactions Transaction[] 
 }
 
 model Wallet {
-  id      Int   @id @default(autoincrement())
-  userId  Int
-  user    User  @relation(fields: [userId], references: [id])
-  balance Float @default(0)
-  Transaction Transaction[]
+  id          Int             @id @default(autoincrement())
+  userId      Int
+  user        User            @relation(fields: [userId], references: [id])
+  balance     Float           @default(0)
+  transactions Transaction[]  
+  walletCryptos WalletCryptocurrency[] 
 }
 
 model Cryptocurrency {
-  id        Int      @id @default(autoincrement())
+  id        Int             @id @default(autoincrement())
   name      String
-  symbol    String   @unique
+  symbol    String          @unique
   price     Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  transactions Transaction[] 
 
-  Transaction Transaction[]
+  WalletCryptocurrency WalletCryptocurrency[]
 }
 
 model Transaction {
@@ -56,5 +57,16 @@ model Transaction {
   createdAt       DateTime       @default(now())
   userId          Int
   user            User           @relation(fields: [userId], references: [id])
-  currency        String         // Add this field to store the currency type
+  currency        String         
+  description     String? 
+}
+
+model WalletCryptocurrency {
+  walletId        Int
+  cryptocurrencyId Int
+  amount          Float
+  wallet          Wallet        @relation(fields: [walletId], references: [id])
+  cryptocurrency   Cryptocurrency @relation(fields: [cryptocurrencyId], references: [id])
+
+  @@id([walletId, cryptocurrencyId]) 
 }

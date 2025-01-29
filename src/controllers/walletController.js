@@ -1,163 +1,18 @@
-// const { PrismaClient } = require("@prisma/client");
-
-// const prisma = new PrismaClient();
-
-// async function getWalletBalance(req, res) {
-//   try {
-//     const userId = req.user.id; // Get userId from the authenticated user
-
-//     // Fetch the wallet associated with the userId
-//     const wallet = await prisma.wallet.findFirst({
-//       where: {
-//         userId: userId, // Find the wallet by userId
-//       },
-//     });
-
-//     if (!wallet) {
-//       return res.status(404).json({ error: "Wallet not found" });
-//     }
-
-//     res.status(200).json({ balance: wallet.balance });
-//   } catch (error) {
-//     res
-//       .status(500)
-//       .json({
-//         error: "Failed to fetch wallet balance",
-//         details: error.message,
-//       });
-//   }
-// }
-
-// async function depositToWallet(req, res) {
-//   try {
-//     const userId = req.user.id; // Get userId from the authenticated user
-//     const depositAmount = 100000000; // Example deposit amount
-
-//     // Check if the user already has a wallet
-//     const wallet = await prisma.wallet.findFirst({
-//       where: {
-//         userId: userId, // Find wallet associated with the userId
-//       },
-//     });
-
-//     if (wallet) {
-//       // If wallet exists, update the balance
-//       const updatedWallet = await prisma.wallet.update({
-//         where: {
-//           id: wallet.id, // Use the wallet's unique ID to update
-//         },
-//         data: {
-//           balance: {
-//             increment: depositAmount, // Add deposit to the balance
-//           },
-//         },
-//       });
-
-//       res.status(200).json({
-//         message: "Wallet balance updated successfully",
-//         wallet: updatedWallet,
-//       });
-//     } else {
-//       // If wallet does not exist, create a new wallet for the user
-//       const newWallet = await prisma.wallet.create({
-//         data: {
-//           userId: userId,
-//           balance: depositAmount, // Set the initial balance
-//         },
-//       });
-
-//       res.status(201).json({
-//         message: "Wallet created and deposit successful",
-//         wallet: newWallet,
-//       });
-//     }
-//   } catch (error) {
-//     res.status(500).json({
-//       error: "Failed to deposit to wallet",
-//       details: error.message,
-//     });
-//   }
-// }
-
-// async function withdrawFromWallet(req, res) {
-//   try {
-//     const userId = req.user.id; // Get userId from the authenticated user
-//     const withdrawalAmount = 50000; // Example withdrawal amount
-
-//     // Fetch the user's wallet by userId
-//     const wallet = await prisma.wallet.findFirst({
-//       where: {
-//         userId: userId, // Find wallet associated with the userId
-//       },
-//     });
-
-//     if (!wallet) {
-//       return res.status(404).json({
-//         error: "Wallet not found",
-//         details: "No wallet found for the user",
-//       });
-//     }
-
-//     if (wallet.balance < withdrawalAmount) {
-//       return res.status(400).json({
-//         error: "Insufficient funds",
-//         details: "The withdrawal amount exceeds the available balance",
-//       });
-//     }
-
-//     // If wallet exists and balance is sufficient, proceed with withdrawal
-//     const updatedWallet = await prisma.wallet.update({
-//       where: {
-//         id: wallet.id, // Use wallet's unique ID to update
-//       },
-//       data: {
-//         balance: {
-//           decrement: withdrawalAmount, // Subtract withdrawal amount from balance
-//         },
-//       },
-//     });
-
-//     res.status(200).json({
-//       message: "Withdrawal successful",
-//       wallet: updatedWallet,
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       error: "Failed to withdraw from wallet",
-//       details: error.message,
-//     });
-//   }
-// }
-
-// module.exports = { getWalletBalance, depositToWallet, withdrawFromWallet };
-
 const { PrismaClient } = require("@prisma/client");
-
 const prisma = new PrismaClient();
+const axios = require("axios");
 
-// async function getWalletBalance(req, res) {
-//   try {
-//     const userId = req.user.id; // Get userId from the authenticated user
+const EXCHANGE_API_URL = process.env.EXCHANGE_API_URL;
 
-//     // Fetch the wallet associated with the userId
-//     const wallet = await prisma.wallet.findFirst({
-//       where: {
-//         userId: userId, // Find the wallet by userId
-//       },
-//     });
-
-//     if (!wallet) {
-//       return res.status(404).json({ error: "Wallet not found" });
-//     }
-
-//     res.status(200).json({ balance: wallet.balance });
-//   } catch (error) {
-//     res.status(500).json({
-//       error: "Failed to fetch wallet balance",
-//       details: error.message,
-//     });
-//   }
-// }
+async function getExchangeRates() {
+  try {
+    const response = await axios.get(EXCHANGE_API_URL);
+    return response.data.rates; 
+  } catch (error) {
+    console.error("Error fetching exchange rates:", error);
+    return null; 
+  }
+}
 
 async function getWalletBalances(req, res) {
   try {
@@ -184,7 +39,7 @@ async function getWalletBalances(req, res) {
       username: wallet.user.username,
       email: wallet.user.email,
       currency: wallet.currency,
-      balance: wallet.balance,
+      balance: parseFloat((wallet.balance).toFixed(2)),
     }));
 
     res.status(200).json(walletBalances);
@@ -196,15 +51,14 @@ async function getWalletBalances(req, res) {
   }
 }
 
-
 async function getWalletBalanceById(req, res) {
   try {
-    const { id } = req.params; // Get userId from the route parameters
+    const { id } = req.params; 
 
     // Fetch the wallet associated with the userId
     const wallet = await prisma.wallet.findFirst({
       where: {
-        userId: parseInt(id), // Convert id to integer to match the type
+        userId: parseInt(id), 
       },
       include: {
         user: {
@@ -220,12 +74,11 @@ async function getWalletBalanceById(req, res) {
       return res.status(404).json({ error: "Wallet not found for this user" });
     }
 
-    // Return wallet balance along with user details
     res.status(200).json({
       userId: wallet.userId,
       username: wallet.user.username,
       email: wallet.user.email,
-      balance: wallet.balance,
+      balance: parseFloat((wallet.balance).toFixed(2)),
       currency: wallet.currency,
     });
   } catch (error) {
@@ -238,8 +91,8 @@ async function getWalletBalanceById(req, res) {
 
 async function depositToWallet(req, res) {
   try {
-    const userId = req.user.id; 
-    const { depositAmount } = req.body; 
+    const userId = req.user.id;
+    const { depositAmount, currency } = req.body;
 
     if (!depositAmount || depositAmount <= 0) {
       return res.status(400).json({
@@ -248,56 +101,56 @@ async function depositToWallet(req, res) {
       });
     }
 
-    // Check if the user already has a wallet
-    const wallet = await prisma.wallet.findFirst({
-      where: {
-        userId: userId,
-      },
-    });
+    let convertedAmount = depositAmount;
+
+    if (currency === "THB") {
+      const rates = await getExchangeRates();
+      if (!rates) {
+        return res.status(500).json({
+          error: "Exchange rate service unavailable",
+          details: "Unable to fetch exchange rates",
+        });
+      }
+      convertedAmount = parseFloat((depositAmount / rates.THB).toFixed(2));
+    }
+
+    const wallet = await prisma.wallet.findFirst({ where: { userId } });
 
     if (wallet) {
-      // If wallet exists, update the balance
       const updatedWallet = await prisma.wallet.update({
-        where: {
-          id: wallet.id,
-        },
-        data: {
-          balance: {
-            increment: depositAmount,
-          },
-        },
+        where: { id: wallet.id },
+        data: { balance: { increment: convertedAmount } },
       });
 
       res.status(200).json({
-        message: "Wallet balance updated successfully",
-        wallet: updatedWallet,
+        message: "Deposit successful",
+        wallet: { ...updatedWallet, balance: parseFloat(updatedWallet.balance.toFixed(2)) },
+        depositAmount,
+        convertedAmount,
+        currency: "USD",
       });
     } else {
-      // If wallet does not exist, create a new wallet for the user
       const newWallet = await prisma.wallet.create({
-        data: {
-          userId: userId,
-          balance: depositAmount,
-        },
+        data: { userId, balance: convertedAmount },
       });
 
       res.status(201).json({
         message: "Wallet created and deposit successful",
-        wallet: newWallet,
+        wallet: { ...newWallet, balance: parseFloat(newWallet.balance.toFixed(2)) },
+        depositAmount,
+        convertedAmount,
+        currency: "USD",
       });
     }
   } catch (error) {
-    res.status(500).json({
-      error: "Failed to deposit to wallet",
-      details: error.message,
-    });
+    res.status(500).json({ error: "Failed to deposit to wallet", details: error.message });
   }
 }
 
 async function withdrawFromWallet(req, res) {
   try {
-    const userId = req.user.id; 
-    const { withdrawalAmount } = req.body; 
+    const userId = req.user.id;
+    const { withdrawalAmount, currency } = req.body;
 
     if (!withdrawalAmount || withdrawalAmount <= 0) {
       return res.status(400).json({
@@ -306,12 +159,20 @@ async function withdrawFromWallet(req, res) {
       });
     }
 
-    // Fetch the user's wallet by userId
-    const wallet = await prisma.wallet.findFirst({
-      where: {
-        userId: userId,
-      },
-    });
+    let convertedAmount = withdrawalAmount;
+
+    if (currency === "THB") {
+      const rates = await getExchangeRates();
+      if (!rates) {
+        return res.status(500).json({
+          error: "Exchange rate service unavailable",
+          details: "Unable to fetch exchange rates",
+        });
+      }
+      convertedAmount = parseFloat((withdrawalAmount / rates.THB).toFixed(2));
+    }
+
+    const wallet = await prisma.wallet.findFirst({ where: { userId } });
 
     if (!wallet) {
       return res.status(404).json({
@@ -320,7 +181,7 @@ async function withdrawFromWallet(req, res) {
       });
     }
 
-    if (wallet.balance < withdrawalAmount) {
+    if (wallet.balance < convertedAmount) {
       return res.status(400).json({
         error: "Insufficient funds",
         details: "The withdrawal amount exceeds the available balance",
@@ -328,25 +189,19 @@ async function withdrawFromWallet(req, res) {
     }
 
     const updatedWallet = await prisma.wallet.update({
-      where: {
-        id: wallet.id, 
-      },
-      data: {
-        balance: {
-          decrement: withdrawalAmount, 
-        },
-      },
+      where: { id: wallet.id },
+      data: { balance: { decrement: convertedAmount } },
     });
 
     res.status(200).json({
       message: "Withdrawal successful",
-      wallet: updatedWallet,
+      wallet: { ...updatedWallet, balance: parseFloat(updatedWallet.balance.toFixed(2)) },
+      withdrawalAmount,
+      convertedAmount,
+      currency: "USD",
     });
   } catch (error) {
-    res.status(500).json({
-      error: "Failed to withdraw from wallet",
-      details: error.message,
-    });
+    res.status(500).json({ error: "Failed to withdraw from wallet", details: error.message });
   }
 }
 
