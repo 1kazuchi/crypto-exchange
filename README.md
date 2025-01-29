@@ -86,5 +86,5 @@ This is a cryptocurrency exchange system built using Node.js, Prisma, and MySQL.
 Create a .env file in the root directory with the following content:
 
     DATABASE_URL="mysql://username:password@localhost:3306/crypto_exchange"
-    JWT_SECRET="your-secret-key"
+    SECRET_KEY="your-secret-key"
     EXCHANGE_API_URL="https://api.exchangerate-api.com/v4/latest/USD"
