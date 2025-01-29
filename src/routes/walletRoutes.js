@@ -1,7 +1,8 @@
 const express = require("express");
 const authenticateToken = require("../middlewares/authMiddleware");
 const {
-  getWalletBalance,
+  getWalletBalances,
+  getWalletBalanceById,
   depositToWallet,
   withdrawFromWallet,
 } = require("../controllers/walletController");
@@ -12,7 +13,8 @@ const router = express.Router();
 router.use(authenticateToken);
 
 // get Balance Wallet
-router.get("/", getWalletBalance);
+router.get("/", getWalletBalances);
+router.get("/:id", getWalletBalanceById);
 
 // deposit
 router.post("/deposit", depositToWallet);

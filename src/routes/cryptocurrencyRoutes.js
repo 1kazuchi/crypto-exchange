@@ -5,9 +5,6 @@ const {
   getCryptocurrencies
 } = require("../controllers/cryptocurrencyController");
 
-// use authenticateToken all routes
-router.use(authenticateToken);
-
 // get cryptocurrencies
 router.get("/", getCryptocurrencies);
 

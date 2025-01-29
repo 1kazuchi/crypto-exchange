@@ -135,22 +135,99 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
-async function getWalletBalance(req, res) {
+// async function getWalletBalance(req, res) {
+//   try {
+//     const userId = req.user.id; // Get userId from the authenticated user
+
+//     // Fetch the wallet associated with the userId
+//     const wallet = await prisma.wallet.findFirst({
+//       where: {
+//         userId: userId, // Find the wallet by userId
+//       },
+//     });
+
+//     if (!wallet) {
+//       return res.status(404).json({ error: "Wallet not found" });
+//     }
+
+//     res.status(200).json({ balance: wallet.balance });
+//   } catch (error) {
+//     res.status(500).json({
+//       error: "Failed to fetch wallet balance",
+//       details: error.message,
+//     });
+//   }
+// }
+
+async function getWalletBalances(req, res) {
   try {
-    const userId = req.user.id; // Get userId from the authenticated user
+    // Fetch all wallets associated with users
+    const wallets = await prisma.wallet.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (wallets.length === 0) {
+      return res.status(404).json({ error: "No wallets found" });
+    }
+
+    // Map the wallet data to include user info and balance
+    const walletBalances = wallets.map(wallet => ({
+      userId: wallet.userId,
+      username: wallet.user.username,
+      email: wallet.user.email,
+      currency: wallet.currency,
+      balance: wallet.balance,
+    }));
+
+    res.status(200).json(walletBalances);
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to fetch wallet balances",
+      details: error.message,
+    });
+  }
+}
+
+
+async function getWalletBalanceById(req, res) {
+  try {
+    const { id } = req.params; // Get userId from the route parameters
 
     // Fetch the wallet associated with the userId
     const wallet = await prisma.wallet.findFirst({
       where: {
-        userId: userId, // Find the wallet by userId
+        userId: parseInt(id), // Convert id to integer to match the type
+      },
+      include: {
+        user: {
+          select: {
+            username: true,
+            email: true,
+          },
+        },
       },
     });
 
     if (!wallet) {
-      return res.status(404).json({ error: "Wallet not found" });
+      return res.status(404).json({ error: "Wallet not found for this user" });
     }
 
-    res.status(200).json({ balance: wallet.balance });
+    // Return wallet balance along with user details
+    res.status(200).json({
+      userId: wallet.userId,
+      username: wallet.user.username,
+      email: wallet.user.email,
+      balance: wallet.balance,
+      currency: wallet.currency,
+    });
   } catch (error) {
     res.status(500).json({
       error: "Failed to fetch wallet balance",
@@ -273,4 +350,4 @@ async function withdrawFromWallet(req, res) {
   }
 }
 
-module.exports = { getWalletBalance, depositToWallet, withdrawFromWallet };
+module.exports = { getWalletBalances,getWalletBalanceById ,depositToWallet, withdrawFromWallet };
