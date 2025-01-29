@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE `wallet` ADD COLUMN `price` DOUBLE NOT NULL DEFAULT 0;
