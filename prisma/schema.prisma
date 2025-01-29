@@ -14,30 +14,34 @@ datasource db {
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
-  username String   @unique
-  email    String   @unique
-  password String
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  wallets  Wallet[]
+  wallets   Wallet[]
+
+  Transaction Transaction[]
 }
 
 model Wallet {
-  id              Int           @id @default(autoincrement())
-  userId   Int     @unique
-  balance  Float   @default(0.0)
-  user     User    @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  transactions    Transaction[]
+  id      Int   @id @default(autoincrement())
+  userId  Int
+  user    User  @relation(fields: [userId], references: [id])
+  balance Float @default(0)
+  Transaction Transaction[]
 }
 
 model Cryptocurrency {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  symbol      String   @unique
-  transactions Transaction[]
+  id        Int      @id @default(autoincrement())
+  name      String
+  symbol    String   @unique
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Transaction Transaction[]
 }
 
 model Transaction {
@@ -45,8 +49,12 @@ model Transaction {
   amount          Float
   transactionType String         
   walletId        Int
+  price           Float
   wallet          Wallet         @relation(fields: [walletId], references: [id])
   cryptoId        Int
   cryptocurrency  Cryptocurrency @relation(fields: [cryptoId], references: [id])
   createdAt       DateTime       @default(now())
+  userId          Int
+  user            User           @relation(fields: [userId], references: [id])
+  currency        String         // Add this field to store the currency type
 }

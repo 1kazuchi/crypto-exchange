@@ -1,18 +1,24 @@
 const { PrismaClient } = require("@prisma/client");
+
 const prisma = new PrismaClient();
 
 async function main() {
-  // add coin 
-  const cryptocurrencies = await prisma.cryptocurrency.createMany({
-    data: [
-      { name: "Bitcoin", symbol: "BTC" },
-      { name: "Ethereum", symbol: "ETH" },
-      { name: "Ripple", symbol: "XRP" },
-      { name: "Dogecoin", symbol: "DOGE" },
-    ],
-  });
+  const cryptocurrencies = [
+    { name: "Bitcoin", symbol: "BTC", price: 25000.0 },
+    { name: "Ethereum", symbol: "ETH", price: 1700.0 },
+    { name: "Ripple", symbol: "XRP", price: 0.5 },
+    { name: "Dogecoin", symbol: "DOGE", price: 0.07 },
+  ];
 
-  console.log("Seeded cryptocurrencies:", cryptocurrencies);
+  for (const crypto of cryptocurrencies) {
+    await prisma.cryptocurrency.upsert({
+      where: { symbol: crypto.symbol },
+      update: { price: crypto.price },
+      create: crypto,
+    });
+  }
+
+  console.log("Seeded cryptocurrencies!");
 }
 
 main()
