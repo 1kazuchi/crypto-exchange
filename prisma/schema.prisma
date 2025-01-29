@@ -45,7 +45,7 @@ model Cryptocurrency {
   WalletCryptocurrency WalletCryptocurrency[]
 }
 
-model Transaction {
+model Wallet {
   id              Int            @id @default(autoincrement())
   amount          Float
   transactionType String         

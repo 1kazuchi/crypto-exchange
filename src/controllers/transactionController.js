@@ -16,7 +16,13 @@ async function getUserTransactions(req, res) {
       },
     });
 
-    res.status(200).json({ transactions });
+    // Format price to two decimal places
+    const formattedTransactions = transactions.map((transaction) => ({
+      ...transaction,
+      price: parseFloat(transaction.price).toFixed(2), // Ensure price is properly formatted
+    }));
+
+    res.status(200).json({ transactions: formattedTransactions });
   } catch (error) {
     res
       .status(500)
@@ -42,7 +48,13 @@ async function getUserTransactionsById(req, res) {
       },
     });
 
-    res.status(200).json({ transactions });
+    // Format price to two decimal places
+    const formattedTransactions = transactions.map((transaction) => ({
+      ...transaction,
+      price: parseFloat(transaction.price).toFixed(2), // Ensure price is properly formatted
+    }));
+
+    res.status(200).json({ transactions: formattedTransactions });
   } catch (error) {
     res
       .status(500)
@@ -123,7 +135,6 @@ async function buyCrypto(req, res) {
       },
     });
 
-    // Now update the walletCryptocurrency table to reflect the amount of cryptocurrency bought
     const existingWalletCrypto = await prisma.walletCryptocurrency.findUnique({
       where: {
         walletId_cryptocurrencyId: {
@@ -159,7 +170,6 @@ async function buyCrypto(req, res) {
       });
     }
 
-    // Fetch updated wallet to return the new balance
     const updatedWallet = await prisma.wallet.findUnique({
       where: { id: walletId },
     });
@@ -183,8 +193,8 @@ async function buyCrypto(req, res) {
           symbol: cryptocurrency.symbol,
         },
       },
-      updatedWalletBalance: updatedWallet.balance, // Return the updated balance
-      remainingCryptoAmount: remainingCrypto ? remainingCrypto.amount : 0, // Return remaining cryptocurrency amount
+      updatedWalletBalance: updatedWallet.balance, 
+      remainingCryptoAmount: remainingCrypto ? remainingCrypto.amount : 0, 
     });
   } catch (error) {
     res.status(500).json({
@@ -201,7 +211,6 @@ async function sellCrypto(req, res) {
   try {
     const userId = req.user.id;
 
-    // Fetch the user's wallet to check balance
     const wallet = await prisma.wallet.findUnique({
       where: { id: walletId },
     });
@@ -213,7 +222,6 @@ async function sellCrypto(req, res) {
       });
     }
 
-    // Fetch the cryptocurrency to get its price and name
     const cryptocurrency = await prisma.cryptocurrency.findUnique({
       where: { id: cryptocurrencyId },
       select: { price: true, name: true, symbol: true },
@@ -226,7 +234,6 @@ async function sellCrypto(req, res) {
       });
     }
 
-    // Check if the user has enough cryptocurrency to sell
     const userCryptoAmount = await prisma.walletCryptocurrency.findUnique({
       where: {
         walletId_cryptocurrencyId: {
@@ -243,7 +250,7 @@ async function sellCrypto(req, res) {
       });
     }
 
-    // Create the sell transaction
+    // Create sell transaction
     const totalPrice = amount * cryptocurrency.price;
     const transaction = await prisma.transaction.create({
       data: {
@@ -263,7 +270,7 @@ async function sellCrypto(req, res) {
       },
     });
 
-    // Update the user's wallet balance after the sell operation
+    // Update the user's wallet balance
     await prisma.wallet.update({
       where: { id: walletId },
       data: {
@@ -273,7 +280,7 @@ async function sellCrypto(req, res) {
       },
     });
 
-    // Update the walletCryptocurrency table to reflect the amount of cryptocurrency sold
+    // Update the walletCryptocurrency
     await prisma.walletCryptocurrency.update({
       where: {
         walletId_cryptocurrencyId: {
@@ -288,12 +295,10 @@ async function sellCrypto(req, res) {
       },
     });
 
-    // Fetch updated wallet to return the new balance
     const updatedWallet = await prisma.wallet.findUnique({
       where: { id: walletId },
     });
 
-    // Calculate remaining cryptocurrency amount
     const remainingCrypto = await prisma.walletCryptocurrency.findUnique({
       where: {
         walletId_cryptocurrencyId: {
@@ -312,8 +317,8 @@ async function sellCrypto(req, res) {
           symbol: cryptocurrency.symbol,
         },
       },
-      updatedWalletBalance: updatedWallet.balance, // Return the updated balance
-      remainingCryptoAmount: remainingCrypto ? remainingCrypto.amount : 0, // Return remaining cryptocurrency amount
+      updatedWalletBalance: updatedWallet.balance, 
+      remainingCryptoAmount: remainingCrypto ? remainingCrypto.amount : 0, 
     });
   } catch (error) {
     res.status(500).json({
@@ -325,10 +330,9 @@ async function sellCrypto(req, res) {
 
 async function transferCrypto(req, res) {
   const { receiverUserId, cryptocurrencyId, amount, currency } = req.body;
-  const senderUserId = req.user.id; // Sender's user ID from session or token
+  const senderUserId = req.user.id; 
 
   try {
-    // Fetch sender's wallet
     const senderWallet = await prisma.wallet.findFirst({
       where: { userId: senderUserId },
     });
@@ -343,7 +347,6 @@ async function transferCrypto(req, res) {
       });
     }
 
-    // Fetch receiver's wallet
     console.log("Fetching receiver wallet for user:", receiverUserId);
     const receiverWallet = await prisma.wallet.findFirst({
       where: { userId: receiverUserId },
@@ -356,7 +359,6 @@ async function transferCrypto(req, res) {
       });
     }
 
-    // Fetch cryptocurrency details (price, name, symbol)
     const cryptocurrency = await prisma.cryptocurrency.findUnique({
       where: { id: cryptocurrencyId },
       select: { price: true, name: true, symbol: true },
@@ -369,7 +371,6 @@ async function transferCrypto(req, res) {
       });
     }
 
-    // Fetch the sender's current cryptocurrency balance
     const senderCryptoBalance = await prisma.walletCryptocurrency.findUnique({
       where: {
         walletId_cryptocurrencyId: {
@@ -386,35 +387,34 @@ async function transferCrypto(req, res) {
       });
     }
 
-    const transactionDate = new Date(); // Get current timestamp
+    const transactionDate = new Date(); 
 
-    // Create the transfer transaction for sender (subtract from sender)
     await prisma.transaction.create({
       data: {
         transactionType: "transfer",
-        amount: -amount, // Negative amount for sending
+        amount: -amount, 
         price: cryptocurrency.price,
         wallet: { connect: { id: senderWallet.id } },
         cryptocurrency: { connect: { id: cryptocurrencyId } },
         user: { connect: { id: senderUserId } },
         currency,
         description: `Transfer out to user ${receiverUserId}`,
-        createdAt: transactionDate, // Include createdAt timestamp
+        createdAt: transactionDate, 
       },
     });
 
-    // Create the transfer transaction for receiver (add to receiver)
+    
     await prisma.transaction.create({
       data: {
         transactionType: "transfer",
-        amount, // Positive amount for receiving
+        amount, 
         price: cryptocurrency.price,
         wallet: { connect: { id: receiverWallet.id } },
         cryptocurrency: { connect: { id: cryptocurrencyId } },
         user: { connect: { id: receiverUserId } },
         currency,
         description: `Transfer in from user ${senderUserId}`,
-        createdAt: transactionDate, // Ensure same timestamp for both transactions
+        createdAt: transactionDate, 
       },
     });
 
@@ -442,7 +442,6 @@ async function transferCrypto(req, res) {
     });
 
     if (!receiverCryptoBalance) {
-      // If the receiver doesn't already have this cryptocurrency, create an entry
       await prisma.walletCryptocurrency.create({
         data: {
           walletId: receiverWallet.id,
@@ -451,7 +450,7 @@ async function transferCrypto(req, res) {
         },
       });
     } else {
-      // Otherwise, update the existing amount
+
       await prisma.walletCryptocurrency.update({
         where: {
           walletId_cryptocurrencyId: {
@@ -472,7 +471,7 @@ async function transferCrypto(req, res) {
       cryptocurrency: cryptocurrency.name,
       amount,
       currency,
-      createdAt: transactionDate, // Include the transaction timestamp in the response
+      createdAt: transactionDate, 
     });
   } catch (error) {
     res.status(500).json({
@@ -481,7 +480,6 @@ async function transferCrypto(req, res) {
     });
   }
 }
-
 
 //fetch remaining cryptocurrencies
 async function getRemainingCryptocurrenciesByUserId(req, res) {
@@ -493,10 +491,14 @@ async function getRemainingCryptocurrenciesByUserId(req, res) {
       include: {
         transactions: {
           where: {
-            OR: [{ transactionType: "buy" }, { transactionType: "sell" }, { transactionType: "transfer" }],
+            OR: [
+              { transactionType: "buy" },
+              { transactionType: "sell" },
+              { transactionType: "transfer" },
+            ],
           },
           include: {
-            cryptocurrency: true, 
+            cryptocurrency: true,
           },
         },
       },
@@ -514,7 +516,7 @@ async function getRemainingCryptocurrenciesByUserId(req, res) {
     wallets.forEach((wallet) => {
       wallet.transactions.forEach((transaction) => {
         const cryptoKey = transaction.cryptocurrency.symbol; // usecryptocurrency's symbol as key
-
+        
         // check cryptocurrency
         if (!remainingCryptocurrenciesMap[cryptoKey]) {
           remainingCryptocurrenciesMap[cryptoKey] = {
@@ -540,11 +542,13 @@ async function getRemainingCryptocurrenciesByUserId(req, res) {
         if (transaction.transactionType === "transfer") {
           // Transfer out: Subtract from the sender's wallet
           if (transaction.amount < 0) {
-            remainingCryptocurrenciesMap[cryptoKey].remainingAmount += transaction.amount;
+            remainingCryptocurrenciesMap[cryptoKey].remainingAmount +=
+              transaction.amount;
           }
           // Transfer in: Add to the receiver's wallet
           else {
-            remainingCryptocurrenciesMap[cryptoKey].remainingAmount += transaction.amount;
+            remainingCryptocurrenciesMap[cryptoKey].remainingAmount +=
+              transaction.amount;
           }
         }
       });
@@ -566,7 +570,6 @@ async function getRemainingCryptocurrenciesByUserId(req, res) {
     });
   }
 }
-
 
 module.exports = {
   getUserTransactions,
